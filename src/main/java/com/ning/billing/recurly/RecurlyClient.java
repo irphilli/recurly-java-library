@@ -131,6 +131,8 @@ public class RecurlyClient {
     private final String baseUrl;
     private AsyncHttpClient client;
 
+    private boolean skipAuth;
+
     public RecurlyClient(final String apiKey) {
         this(apiKey, "api");
     }
@@ -148,6 +150,7 @@ public class RecurlyClient {
         this.baseUrl = String.format("%s://%s:%d/%s", scheme, host, port, version);
         this.xmlMapper = RecurlyObject.newXmlMapper();
         this.userAgent = buildUserAgent();
+        this.skipAuth = false;
     }
 
     /**
@@ -164,6 +167,10 @@ public class RecurlyClient {
         if (client != null) {
             client.close();
         }
+    }
+
+    public void setSkipAuth(boolean skipAuth) {
+        this.skipAuth = skipAuth;
     }
 
     /**
@@ -1818,11 +1825,22 @@ public class RecurlyClient {
 
     private <T> T callRecurlyXmlContent(final AsyncHttpClient.BoundRequestBuilder builder, @Nullable final Class<T> clazz)
             throws IOException, ExecutionException, InterruptedException {
-        final Response response = clientRequestBuilderCommon(builder)
-                .addHeader("Accept", "application/xml")
-                .addHeader("Content-Type", "application/xml; charset=utf-8")
-                .execute()
-                .get();
+        final Response response;
+        if (skipAuth) {
+            response = clientRequestBuilderCommon(builder)
+                    .addHeader("Accept", "application/xml")
+                    .addHeader("Content-Type", "application/xml; charset=utf-8")
+                    .addHeader("Recurly-Skip-Authorization", "true")
+                    .execute()
+                    .get();
+        }
+        else {
+            response = clientRequestBuilderCommon(builder)
+                    .addHeader("Accept", "application/xml")
+                    .addHeader("Content-Type", "application/xml; charset=utf-8")
+                    .execute()
+                    .get();
+        }
 
         final InputStream in = response.getResponseBodyAsStream();
         try {
