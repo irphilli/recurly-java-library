@@ -179,19 +179,10 @@ public class RecurlyClient {
         this.skipAuth = skipAuth;
     }
 
-
     /**
       * Returns the number of requests remaining until requests will be denied by rate limiting.
       * @return Number of request remaining. Value is valid (> -1) after a successful API call.
       */
-    public int getRateLimitRemaining() {
-        return rateLimitRemaining;
-    }
-
-    /**
-     * Returns the number of requests remaining until requests will be denied by rate limiting.
-     * @return Number of requests remaining. Value is valid (> -1) after a successful API call.
-     */
     public int getRateLimitRemaining() {
         return rateLimitRemaining;
     }
