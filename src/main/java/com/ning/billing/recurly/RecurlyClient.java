@@ -103,7 +103,7 @@ public class RecurlyClient {
     private static final Logger log = LoggerFactory.getLogger(RecurlyClient.class);
 
     public static final String RECURLY_DEBUG_KEY = "recurly.debug";
-    public static final String RECURLY_API_VERSION = "2.11";
+    public static final String RECURLY_API_VERSION = "2.12";
 
     private static final String X_RATELIMIT_REMAINING_HEADER_NAME = "X-RateLimit-Remaining";
     private static final String X_RECORDS_HEADER_NAME = "X-Records";
@@ -184,6 +184,14 @@ public class RecurlyClient {
       * Returns the number of requests remaining until requests will be denied by rate limiting.
       * @return Number of request remaining. Value is valid (> -1) after a successful API call.
       */
+    public int getRateLimitRemaining() {
+        return rateLimitRemaining;
+    }
+
+    /**
+     * Returns the number of requests remaining until requests will be denied by rate limiting.
+     * @return Number of requests remaining. Value is valid (> -1) after a successful API call.
+     */
     public int getRateLimitRemaining() {
         return rateLimitRemaining;
     }
@@ -1645,6 +1653,22 @@ public class RecurlyClient {
     }
 
     /**
+     * Purchases pending endpoint.
+     *
+     * Use for Adyen HPP transaction requests. Runs validations
+     + but does not run any transactions.
+     *
+     * <p>
+     * https://dev.recurly.com/docs/pending-purchase
+     *
+     * @param purchase The purchase data
+     * @return The authorized invoice collection
+     */
+    public InvoiceCollection pendingPurchase(final Purchase purchase) {
+        return doPOST(Purchase.PURCHASES_ENDPOINT + "/pending", purchase, InvoiceCollection.class);
+    }
+
+    /**
      * Sets the acquisition details for an account
      * <p>
      * https://dev.recurly.com/docs/create-account-acquisition
@@ -1982,7 +2006,7 @@ public class RecurlyClient {
                 }
             }
 
-            // set rate limit header
+            // Save value of rate limit remaining header
             String rateLimitRemainingString = response.getHeader(X_RATELIMIT_REMAINING_HEADER_NAME);
             if (rateLimitRemainingString != null)
                 rateLimitRemaining = Integer.parseInt(rateLimitRemainingString);
