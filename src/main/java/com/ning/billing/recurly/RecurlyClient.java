@@ -105,6 +105,7 @@ public class RecurlyClient {
     public static final String RECURLY_DEBUG_KEY = "recurly.debug";
     public static final String RECURLY_API_VERSION = "2.11";
 
+    private static final String X_RATELIMIT_REMAINING_HEADER_NAME = "X-RateLimit-Remaining";
     private static final String X_RECORDS_HEADER_NAME = "X-Records";
     private static final String LINK_HEADER_NAME = "Link";
 
@@ -132,6 +133,9 @@ public class RecurlyClient {
     private final String baseUrl;
     private AsyncHttpClient client;
 
+    // Stores the number of requests remaining before rate limiting takes effect
+    private int rateLimitRemaining;
+
     private boolean skipAuth;
 
     public RecurlyClient(final String apiKey) {
@@ -152,6 +156,7 @@ public class RecurlyClient {
         this.xmlMapper = RecurlyObject.newXmlMapper();
         this.userAgent = buildUserAgent();
         this.skipAuth = false;
+        this.rateLimitRemaining = -1;
     }
 
     /**
@@ -172,6 +177,15 @@ public class RecurlyClient {
 
     public void setSkipAuth(boolean skipAuth) {
         this.skipAuth = skipAuth;
+    }
+
+
+    /**
+      * Returns the number of requests remaining until requests will be denied by rate limiting.
+      * @return Number of request remaining. Value is valid (> -1) after a successful API call.
+      */
+    public int getRateLimitRemaining() {
+        return rateLimitRemaining;
     }
 
     /**
@@ -1967,6 +1981,12 @@ public class RecurlyClient {
                     recurlyObjects.setNextUrl(links[1]);
                 }
             }
+
+            // set rate limit header
+            String rateLimitRemainingString = response.getHeader(X_RATELIMIT_REMAINING_HEADER_NAME);
+            if (rateLimitRemainingString != null)
+                rateLimitRemaining = Integer.parseInt(rateLimitRemainingString);
+
             return obj;
         } finally {
             closeStream(in);
