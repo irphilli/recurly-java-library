@@ -181,7 +181,7 @@ public class RecurlyClient {
 
     /**
      * Returns the number of requests remaining until requests will be denied by rate limiting.
-     * @return Number of request remaining. Value is valid (> -1) after a successful API call.
+     * @return Number of requests remaining. Value is valid (> -1) after a successful API call.
      */
     public int getRateLimitRemaining() {
         return rateLimitRemaining;
@@ -642,6 +642,16 @@ public class RecurlyClient {
                         + Subscriptions.SUBSCRIPTIONS_RESOURCE,
                 Subscriptions.class,
                 params);
+    }
+
+    public Subscriptions getSubscriptionsForInvoice(final String invoiceId, final SubscriptionState state, final QueryParams params) {
+       if (state != null) params.put("state", state.getType());
+
+       return doGET(Invoices.INVOICES_RESOURCE
+                        + "/" + invoiceId
+                        + Subscriptions.SUBSCRIPTIONS_RESOURCE,
+               Subscriptions.class,
+               params);
     }
 
     /**
