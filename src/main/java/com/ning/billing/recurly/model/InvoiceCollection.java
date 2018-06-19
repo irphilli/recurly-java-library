@@ -20,6 +20,7 @@ package com.ning.billing.recurly.model;
 import com.google.common.base.Objects;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
@@ -29,8 +30,9 @@ public class InvoiceCollection extends RecurlyObject {
     @XmlElement(name = "charge_invoice")
     private Invoice chargeInvoice;
 
-    @XmlElement(name = "credit_invoices")
-    private List<Invoice> creditInvoices;
+    @XmlElementWrapper(name = "credit_invoices")
+    @XmlElement(name = "credit_invoice")
+    private CreditInvoices creditInvoices;
 
     public void setChargeInvoice(final Invoice chargeInvoice) {
         this.chargeInvoice = chargeInvoice;
@@ -40,11 +42,11 @@ public class InvoiceCollection extends RecurlyObject {
         return this.chargeInvoice;
     }
 
-    public void setCreditInvoices(final List<Invoice> creditInvoices) {
+    public void setCreditInvoices(final CreditInvoices creditInvoices) {
         this.creditInvoices = creditInvoices;
     }
 
-    public List<Invoice> getCreditInvoices() {
+    public CreditInvoices getCreditInvoices() {
         return this.creditInvoices;
     }
 
