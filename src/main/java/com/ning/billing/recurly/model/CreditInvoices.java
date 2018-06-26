@@ -17,21 +17,21 @@
 
 package com.ning.billing.recurly.model;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+
 @XmlRootElement(name = "credit_invoices")
-public class CreditInvoices extends RecurlyObjects<CreditInvoice> {
+public class CreditInvoices extends RecurlyObjects<Invoice> {
 
     @XmlTransient
     private static final String PROPERTY_NAME = "credit_invoice";
 
     @JsonSetter(value = PROPERTY_NAME)
     @Override
-    public void setRecurlyObject(final CreditInvoice value) {
+    public void setRecurlyObject(final Invoice value) {
         super.setRecurlyObject(value);
     }
 
