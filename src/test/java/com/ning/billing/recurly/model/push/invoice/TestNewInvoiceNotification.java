@@ -38,7 +38,10 @@ public class TestNewInvoiceNotification extends TestModelBase {
                                 "  </account>\n" +
                                 "  <invoice>\n" +
                                 "    <uuid>ffc64d71d4b5404e93f13aac9c63b007</uuid>\n" +
-                                "    <subscription_id nil=\"true\"></subscription_id>\n" +
+                                "    <subscription_id>444a710bad5f4dddd4a4ac49fb98ad63</subscription_id>\n" +
+                                "    <subscription_ids type=\"array\">\n" +
+                                "      <subscription_id>444a710bad5f4dddd4a4ac49fb98ad63</subscription_id>\n" +
+                                "    </subscription_ids>\n" +
                                 "    <state>open</state>\n" +
                                 "    <invoice_number_prefix></invoice_number_prefix>\n" +
                                 "    <invoice_number type=\"integer\">1000</invoice_number>\n" +
@@ -58,6 +61,10 @@ public class TestNewInvoiceNotification extends TestModelBase {
 
         final NewInvoiceNotification notification = Notification.read(voidData, NewInvoiceNotification.class);
         Assert.assertNotNull(notification);
+
+        PushInvoice invoice = notification.getInvoice();
+        Assert.assertEquals(invoice.getSubscriptionId(), "444a710bad5f4dddd4a4ac49fb98ad63");
+        Assert.assertEquals(invoice.getSubscriptionIds().get(0), "444a710bad5f4dddd4a4ac49fb98ad63");
     }
 
 }

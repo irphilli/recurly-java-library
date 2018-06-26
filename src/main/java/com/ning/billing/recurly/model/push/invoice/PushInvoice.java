@@ -16,15 +16,23 @@
 
 package com.ning.billing.recurly.model.push.invoice;
 
+import java.util.List;
+
 import com.ning.billing.recurly.model.Invoice;
 import org.joda.time.DateTime;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlList;
 
 public class PushInvoice extends Invoice {
 
     @XmlElement(name = "subscription_id")
     private String subscriptionId;
+
+    @XmlList
+    @XmlElementWrapper(name = "subscription_ids")
+    private List<String> subscriptionIds;
 
     @XmlElement(name = "invoice_number_prefix")
     private String invoiceNumberPrefix;
@@ -47,6 +55,14 @@ public class PushInvoice extends Invoice {
 
     public void setSubscriptionId(final Object subscriptionId) {
         this.subscriptionId = stringOrNull(subscriptionId);
+    }
+
+    public List<String> getSubscriptionIds() {
+        return subscriptionIds;
+    }
+
+    public void setSubscriptionIds(final List<String> subscriptionIds) {
+        this.subscriptionIds = subscriptionIds;
     }
 
     public String getInvoiceNumberPrefix() {
@@ -107,6 +123,10 @@ public class PushInvoice extends Invoice {
             return false;
         }
 
+        if (subscriptionIds != null ? !subscriptionIds.equals(that.subscriptionIds) : that.subscriptionIds != null) {
+            return false;
+        }
+
         if (invoiceNumberPrefix != null ? !invoiceNumberPrefix.equals(that.invoiceNumberPrefix) : that.invoiceNumberPrefix != null) {
             return false;
         }
@@ -126,6 +146,7 @@ public class PushInvoice extends Invoice {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (subscriptionId != null ? subscriptionId.hashCode() : 0);
+        result = 31 * result + (subscriptionIds != null ? subscriptionIds.hashCode() : 0);
         result = 31 * result + (invoiceNumberPrefix != null ? invoiceNumberPrefix.hashCode() : 0);
         result = 31 * result + (date != null ? date.hashCode() : 0);
         result = 31 * result + (closedAt != null ? closedAt.hashCode() : 0);
