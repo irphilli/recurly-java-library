@@ -306,12 +306,12 @@ public class BillingInfo extends RecurlyObject {
         this.tokenId = tokenId;
     }
 
-    public String getCurrency(){
+    public String getCurrency() {
         return currency;
     }
 
-    public void setCurrency(final String currency){
-        this.currency = currency;
+    public void setCurrency(final Object currency) {
+        this.currency = stringOrNull(currency);
     }
 
     public String getGeoCode() { return geoCode; }
