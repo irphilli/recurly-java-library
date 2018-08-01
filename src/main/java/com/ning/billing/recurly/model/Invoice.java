@@ -34,6 +34,8 @@ public class Invoice extends RecurlyObject {
     @XmlElement(name = "original_invoice")
     private Invoice originalInvoice;
 
+    private Invoices originalInvoices;
+
     @XmlElement(name = "uuid")
     private String uuid;
 
@@ -162,6 +164,20 @@ public class Invoice extends RecurlyObject {
             originalInvoice = fetch(originalInvoice, Invoice.class);
         }
         return originalInvoice;
+    }
+
+    /**
+     * Fetches the original invoices if the href is populated, otherwise return the current original invoices.
+     *
+     * @return fully loaded original invoices
+     */
+    public Invoices getOriginalInvoices() {
+        if ("credit".equals(type)) {
+           if (originalInvoices == null) {
+              originalInvoices = recurlyClient.doGET("/invoices/" + invoiceNumber + "/original_invoices", Invoices.class);
+           }
+        }
+        return originalInvoices;
     }
 
     public String getId() {

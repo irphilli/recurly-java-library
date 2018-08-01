@@ -1868,11 +1868,11 @@ public class RecurlyClient {
         return doGETPdfWithFullURL(baseUrl + resource);
     }
 
-    private <T> T doGET(final String resource, final Class<T> clazz) {
+    public <T> T doGET(final String resource, final Class<T> clazz) {
         return doGETWithFullURL(clazz, constructGetUrl(resource, new QueryParams()));
     }
 
-    private <T> T doGET(final String resource, final Class<T> clazz, QueryParams params) {
+    public <T> T doGET(final String resource, final Class<T> clazz, QueryParams params) {
         return doGETWithFullURL(clazz, constructGetUrl(resource, params));
     }
 

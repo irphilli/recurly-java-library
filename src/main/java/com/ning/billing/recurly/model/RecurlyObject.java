@@ -48,7 +48,7 @@ import java.util.Map;
 public abstract class RecurlyObject {
 
     @XmlTransient
-    private RecurlyClient recurlyClient;
+    protected RecurlyClient recurlyClient;
 
     @XmlTransient
     protected String href;
