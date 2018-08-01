@@ -30,6 +30,8 @@ import com.ning.billing.recurly.model.Adjustments;
 import com.ning.billing.recurly.model.BillingInfo;
 import com.ning.billing.recurly.model.Coupon;
 import com.ning.billing.recurly.model.Coupons;
+import com.ning.billing.recurly.model.CustomField;
+import com.ning.billing.recurly.model.CustomFields;
 import com.ning.billing.recurly.model.GiftCard;
 import com.ning.billing.recurly.model.Invoice;
 import com.ning.billing.recurly.model.InvoiceCollection;
@@ -440,9 +442,14 @@ public class TestRecurlyClient {
     }
 
     @Test(groups = "integration")
-    public void testCreateAccount() throws Exception {
+    public void testCreateUpdateAccount() throws Exception {
         final Account accountData = TestUtils.createRandomAccount();
         final BillingInfo billingInfoData = TestUtils.createRandomBillingInfo();
+        CustomFields customFields = new CustomFields();
+        // NOTE: acct_field and acct_field2 must be created on the integration server first
+        customFields.add(TestUtils.createRandomCustomField("acct_field"));
+        customFields.add(TestUtils.createRandomCustomField("acct_field2"));
+        accountData.setCustomFields(customFields);
         final AccountAcquisition acquisitionData = TestUtils.createRandomAccountAcquisition();
         accountData.setAccountAcquisition(acquisitionData);
 
@@ -466,6 +473,7 @@ public class TestRecurlyClient {
             Assert.assertEquals(accountData.getAddress().getZip(), account.getAddress().getZip());
             Assert.assertEquals(accountData.getAddress().getCountry(), account.getAddress().getCountry());
             Assert.assertEquals(accountData.getAddress().getPhone(), account.getAddress().getPhone());
+            Assert.assertEquals(accountData.getCustomFields(), account.getCustomFields());
 
             // fetch and check the acquisition data
             final AccountAcquisition acquisition = recurlyClient.getAccountAcquisition(account.getAccountCode());
@@ -499,6 +507,18 @@ public class TestRecurlyClient {
             // Test BillingInfo lookup
             final BillingInfo retrievedBillingInfo = recurlyClient.getBillingInfo(account.getAccountCode());
             Assert.assertEquals(retrievedBillingInfo, billingInfo);
+
+            // Test Update Account
+            Account updateAccount = new Account();
+            updateAccount.setAccountCode(account.getAccountCode());
+            CustomFields fields = account.getCustomFields();
+            fields.get(0).setValue("");
+            fields.get(1).setValue("update this value");
+            updateAccount.setCustomFields(fields);
+            recurlyClient.updateAccount(updateAccount.getAccountCode(), updateAccount);
+            Account getAccount = recurlyClient.getAccount(updateAccount.getAccountCode());
+            Assert.assertEquals(getAccount.getCustomFields().size(), 1);
+            Assert.assertEquals(getAccount.getCustomFields().get(0).getValue(), "update this value");
 
         } catch(Exception e) {
           System.out.print(e.getMessage());
@@ -729,6 +749,39 @@ public class TestRecurlyClient {
             recurlyClient.terminateSubscription(subscription, RefundOption.full);
             final Subscription expiredSubscription = recurlyClient.getSubscription(subscription.getUuid());
             Assert.assertEquals(expiredSubscription.getState(), "expired");
+        } finally {
+            // Close the account
+            recurlyClient.closeAccount(accountData.getAccountCode());
+            // Delete the Plan
+            recurlyClient.deletePlan(planData.getPlanCode());
+        }
+    }
+
+    @Test(groups = "integration")
+    public void testCreateSubscriptionWithCustomFields() throws Exception {
+        final List<AddOn> addons = new ArrayList<AddOn>();
+        final Plan planData = TestUtils.createRandomPlan();
+        final BillingInfo billingInfoData = TestUtils.createRandomBillingInfo();
+        final CustomField accountField = TestUtils.createRandomCustomField("acct_field");
+        final CustomFields accountFields = new CustomFields();
+        accountFields.add(accountField);
+        final CustomField subField = TestUtils.createRandomCustomField("sub_field");
+        final CustomFields subFields = new CustomFields();
+        subFields.add(subField);
+        final Account accountData = TestUtils.createRandomAccount();
+        accountData.setBillingInfo(billingInfoData);
+        billingInfoData.setAccount(null); // prevents double-POSTing account data inside billing_info
+        accountData.setCustomFields(accountFields);
+        try {
+            // Create the plan
+            final Plan plan = recurlyClient.createPlan(planData);
+            Subscription subscriptionData = TestUtils.createRandomSubscription(CURRENCY, plan, accountData, addons);
+            subscriptionData.setCustomFields(subFields);
+            // Creates the account w/ billing_info, subscription and custom fields on account & subscription at once
+            final Subscription subscription = recurlyClient.createSubscription(subscriptionData);
+            final Account account = recurlyClient.getAccount(accountData.getAccountCode());
+            Assert.assertEquals(subscription.getCustomFields(), subFields);
+            Assert.assertEquals(account.getCustomFields(), accountFields);
         } finally {
             // Close the account
             recurlyClient.closeAccount(accountData.getAccountCode());
@@ -1132,10 +1185,16 @@ public class TestRecurlyClient {
         final BillingInfo billingInfoData = TestUtils.createRandomBillingInfo();
         final Plan planData = TestUtils.createRandomPlan();
         final Plan plan2Data = TestUtils.createRandomPlan(CURRENCY);
+        final ShippingAddress shad = TestUtils.createRandomShippingAddress();
+        final ShippingAddresses shads = new ShippingAddresses();
+        shads.add(shad);
+        accountData.setShippingAddresses(shads);
 
         try {
             // Create a user
             final Account account = recurlyClient.createAccount(accountData);
+            // fetch the shipping address object that was created with the account
+            final ShippingAddress originalShippingAddress = recurlyClient.getAccountShippingAddresses(account.getAccountCode()).get(0);
 
             // Create BillingInfo
             billingInfoData.setAccount(account);
@@ -1151,9 +1210,13 @@ public class TestRecurlyClient {
             // Subscribe the user to the plan
             final Subscription subscriptionData = new Subscription();
             subscriptionData.setPlanCode(plan.getPlanCode());
-            subscriptionData.setAccount(accountData);
+            final Account accountCodeData = new Account();
+            accountCodeData.setAccountCode(account.getAccountCode());
+            subscriptionData.setAccount(accountCodeData);
             subscriptionData.setCurrency(CURRENCY);
             subscriptionData.setUnitAmountInCents(1242);
+            // set the shipping address to account's first shipping address
+            subscriptionData.setShippingAddressId(originalShippingAddress.getId());
             final DateTime creationDateTime = new DateTime(DateTimeZone.UTC);
             final Subscription subscription = recurlyClient.createSubscription(subscriptionData);
 
@@ -1173,6 +1236,9 @@ public class TestRecurlyClient {
             Assert.assertEquals(subscription.getUuid(), subscriptionUpdatedPreview.getUuid());
             Assert.assertNotEquals(subscription.getPlan(), subscriptionUpdatedPreview.getPlan());
             Assert.assertEquals(plan2.getPlanCode(), subscriptionUpdatedPreview.getPlan().getPlanCode());
+
+            // Update with a new shipping address
+            subscriptionUpdateData.setShippingAddress(TestUtils.createRandomShippingAddress());
 
             // Update the subscription
             final Subscription subscriptionUpdated = recurlyClient.updateSubscription(subscription.getUuid(), subscriptionUpdateData);
