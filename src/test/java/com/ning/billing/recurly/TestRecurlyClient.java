@@ -24,6 +24,7 @@ import com.ning.billing.recurly.model.Accounts;
 import com.ning.billing.recurly.model.AcquisitionChannel;
 import com.ning.billing.recurly.model.AddOn;
 import com.ning.billing.recurly.model.AddOns;
+import com.ning.billing.recurly.model.Address;
 import com.ning.billing.recurly.model.Adjustment;
 import com.ning.billing.recurly.model.AdjustmentRefund;
 import com.ning.billing.recurly.model.Adjustments;
@@ -35,6 +36,7 @@ import com.ning.billing.recurly.model.CustomFields;
 import com.ning.billing.recurly.model.GiftCard;
 import com.ning.billing.recurly.model.Invoice;
 import com.ning.billing.recurly.model.InvoiceCollection;
+import com.ning.billing.recurly.model.InvoiceRefund;
 import com.ning.billing.recurly.model.Invoices;
 import com.ning.billing.recurly.model.Plan;
 import com.ning.billing.recurly.model.Purchase;
@@ -727,6 +729,9 @@ public class TestRecurlyClient {
             final SubscriptionNotes subscriptionNotesData = new SubscriptionNotes();
             subscriptionNotesData.setTermsAndConditions("New Terms and Conditions");
             subscriptionNotesData.setCustomerNotes("New Customer Notes");
+            final CustomFields customFields = new CustomFields();
+            customFields.add(TestUtils.createRandomCustomField("food"));
+            subscriptionNotesData.setCustomFields(customFields);
 
             recurlyClient.updateSubscriptionNotes(subscription.getUuid(), subscriptionNotesData);
             final Subscription subscriptionWithNotes = recurlyClient.getSubscription(subscription.getUuid());
@@ -735,6 +740,7 @@ public class TestRecurlyClient {
             Assert.assertNotNull(subscriptionWithNotes);
             Assert.assertEquals(subscriptionWithNotes.getTermsAndConditions(), subscriptionNotesData.getTermsAndConditions());
             Assert.assertEquals(subscriptionWithNotes.getCustomerNotes(), subscriptionNotesData.getCustomerNotes());
+            Assert.assertEquals(subscriptionWithNotes.getCustomFields().get(0).getValue(), subscriptionNotesData.getCustomFields().get(0).getValue());
 
             // Cancel a Subscription
             recurlyClient.cancelSubscription(subscription);
@@ -1174,6 +1180,10 @@ public class TestRecurlyClient {
             Assert.assertEquals(coupon.getDiscountType(), couponData.getDiscountType());
             Assert.assertEquals(coupon.getDiscountPercent(), couponData.getDiscountPercent());
 
+            // Also test getting all coupons
+            Coupons coupons = recurlyClient.getCoupons();
+            Assert.assertNotNull(coupons);
+
         } finally {
             recurlyClient.deleteCoupon(couponData.getCouponCode());
         }
@@ -1396,7 +1406,9 @@ public class TestRecurlyClient {
 
             Assert.assertNotNull(subscription);
 
-            final int expectedMonth = (now.getMonthOfYear() + 3) % 12;
+            // this code should be fine as long as we don't try to add more than 12 months
+            int expectedMonth = now.getMonthOfYear() + 3;
+            if (expectedMonth > 12) expectedMonth = expectedMonth - 12;
             Assert.assertEquals(subscription.getTrialEndsAt().getMonthOfYear(), expectedMonth);
         } finally {
             recurlyClient.closeAccount(accountData.getAccountCode());
@@ -1542,7 +1554,7 @@ public class TestRecurlyClient {
     }
 
     @Test(groups = "integration")
-    public void testInvoiceRefund() throws Exception {
+    public void testInvoices() throws Exception {
         final Account accountData = TestUtils.createRandomAccount();
         final Plan planData = TestUtils.createRandomPlan(CURRENCY);
         final BillingInfo billingInfoData = TestUtils.createRandomBillingInfo();
@@ -1580,11 +1592,33 @@ public class TestRecurlyClient {
             // has to happen asynchronously on the server
             Thread.sleep(5000);
 
-            final Invoice refundInvoice = recurlyClient.refundInvoice(invoice.getId(), 100, RefundMethod.transaction_first);
+            // Test updating an invoice while we're at it
+            Address address = TestUtils.createRandomAddress();
+
+            Invoice updatedInvoice = new Invoice();
+            updatedInvoice.setAddress(address);
+            updatedInvoice.setPoNumber("9876");
+            updatedInvoice.setTermsAndConditions("T&C");
+            updatedInvoice.setCustomerNotes("Some notes");
+
+            recurlyClient.updateInvoice(invoice.getId(), updatedInvoice);
+
+            // Now refund the invoice
+            final InvoiceRefund refundOptions = new InvoiceRefund();
+            refundOptions.setRefundMethod(RefundMethod.transaction_first);
+            refundOptions.setAmountInCents(100);
+            refundOptions.setCreditCustomerNotes("Credit Customer Notes");
+            refundOptions.setExternalRefund(true);
+            refundOptions.setPaymentMethod("credit_card");
+            final Invoice refundInvoice = recurlyClient.refundInvoice(invoice.getId(), refundOptions);
 
             Assert.assertEquals(refundInvoice.getTotalInCents(), new Integer(-100));
             Assert.assertEquals(refundInvoice.getSubtotalInCents(), new Integer(-100));
             Assert.assertEquals(refundInvoice.getTransactions().get(0).getAction(), "refund");
+
+            // The refundInvoice should have an original_invoices of the original invoice
+            final Invoices originalInvoices = recurlyClient.getOriginalInvoices(refundInvoice.getId());
+            Assert.assertEquals(originalInvoices.get(0).getId(), invoice.getId());
         } finally {
             recurlyClient.closeAccount(accountData.getAccountCode());
             recurlyClient.deletePlan(planData.getPlanCode());
@@ -1644,7 +1678,10 @@ public class TestRecurlyClient {
             // adjustmentRefund.setQuantity(1);
             lineItems.add(adjustmentRefund);
 
-            final Invoice refundInvoice = recurlyClient.refundInvoice(invoice.getId(), lineItems, RefundMethod.transaction_first);
+            final InvoiceRefund refundOptions = new InvoiceRefund();
+            refundOptions.setRefundMethod(RefundMethod.transaction_first);
+            refundOptions.setLineItems(lineItems);
+            final Invoice refundInvoice = recurlyClient.refundInvoice(invoice.getId(), refundOptions);
 
             Assert.assertEquals(refundInvoice.getTotalInCents(), new Integer(-100));
             Assert.assertEquals(refundInvoice.getSubtotalInCents(), new Integer(-100));
@@ -1930,5 +1967,4 @@ public class TestRecurlyClient {
             recurlyClient.closeAccount(accountData.getAccountCode());
         }
     }
-
 }

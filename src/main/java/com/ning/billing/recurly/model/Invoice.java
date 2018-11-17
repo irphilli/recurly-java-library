@@ -122,6 +122,9 @@ public class Invoice extends RecurlyObject {
     @XmlElement(name = "balance_in_cents")
     private Integer balanceInCents;
 
+    @XmlElement(name = "refundable_total_in_cents")
+    private Integer refundableTotalInCents;
+
     @XmlElement(name = "due_on")
     private DateTime dueOn;
 
@@ -414,6 +417,15 @@ public class Invoice extends RecurlyObject {
         this.balanceInCents = integerOrNull(balanceInCents);
     }
 
+    public Integer getRefundableTotalInCents() {
+        return refundableTotalInCents;
+    }
+
+    public void setRefundableTotalInCents(final Object refundableTotalInCents) {
+        this.refundableTotalInCents = integerOrNull(refundableTotalInCents);
+    }
+
+
     public DateTime getDueOn() {
         return dueOn;
     }
@@ -487,6 +499,7 @@ public class Invoice extends RecurlyObject {
         sb.append(", subtotalBeforeDiscountInCents=").append(subtotalBeforeDiscountInCents);
         sb.append(", discountInCents=").append(discountInCents);
         sb.append(", balanceInCents=").append(balanceInCents);
+        sb.append(", refundableTotalInCents=").append(refundableTotalInCents);
         sb.append(", dueOn=").append(dueOn);
         sb.append(", type=").append(type);
         sb.append(", origin=").append(origin);
@@ -569,6 +582,9 @@ public class Invoice extends RecurlyObject {
         if (subtotalInCents != null ? !subtotalInCents.equals(invoice.subtotalInCents) : invoice.subtotalInCents != null) {
             return false;
         }
+        if (refundableTotalInCents != null ? !refundableTotalInCents.equals(invoice.refundableTotalInCents) : invoice.refundableTotalInCents != null) {
+            return false;
+        }
         if (taxInCents != null ? !taxInCents.equals(invoice.taxInCents) : invoice.taxInCents != null) {
             return false;
         }
@@ -642,6 +658,7 @@ public class Invoice extends RecurlyObject {
                 subtotalBeforeDiscountInCents,
                 discountInCents,
                 balanceInCents,
+                refundableTotalInCents,
                 type,
                 origin,
                 address,

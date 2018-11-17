@@ -1,4 +1,4 @@
-recurly-java-library [![Build Status](https://travis-ci.org/killbilling/recurly-java-library.svg?branch=master)](https://travis-ci.org/killbilling/recurly-java-library)
+recurly-java-library
 ====================
 
 Java library for Recurly, originally developed for [Kill Bill](http://killbill.io), an open-source subscription management and billing system.
@@ -12,7 +12,7 @@ The library is distributed via [Maven Central](http://search.maven.org/#search%7
 <dependency>
     <groupId>com.ning.billing</groupId>
     <artifactId>recurly-java-library</artifactId>
-    <version>0.18.0</version>
+    <version>0.21.0</version>
 </dependency>
 ```
 

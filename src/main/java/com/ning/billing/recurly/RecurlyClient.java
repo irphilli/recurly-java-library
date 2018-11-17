@@ -19,6 +19,7 @@ package com.ning.billing.recurly;
 
 import com.ning.billing.recurly.model.Account;
 import com.ning.billing.recurly.model.AccountBalance;
+import com.ning.billing.recurly.model.AccountNotes;
 import com.ning.billing.recurly.model.Accounts;
 import com.ning.billing.recurly.model.AddOn;
 import com.ning.billing.recurly.model.AddOns;
@@ -29,8 +30,6 @@ import com.ning.billing.recurly.model.BillingInfo;
 import com.ning.billing.recurly.model.Coupon;
 import com.ning.billing.recurly.model.Coupons;
 import com.ning.billing.recurly.model.CreditPayments;
-import com.ning.billing.recurly.model.CustomField;
-import com.ning.billing.recurly.model.CustomFields;
 import com.ning.billing.recurly.model.Errors;
 import com.ning.billing.recurly.model.GiftCard;
 import com.ning.billing.recurly.model.GiftCards;
@@ -89,6 +88,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.net.ConnectException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.security.KeyManagementException;
@@ -106,7 +106,7 @@ public class RecurlyClient {
     private static final Logger log = LoggerFactory.getLogger(RecurlyClient.class);
 
     public static final String RECURLY_DEBUG_KEY = "recurly.debug";
-    public static final String RECURLY_API_VERSION = "2.13";
+    public static final String RECURLY_API_VERSION = "2.16";
 
     private static final String X_RATELIMIT_REMAINING_HEADER_NAME = "X-RateLimit-Remaining";
     private static final String X_RECORDS_HEADER_NAME = "X-Records";
@@ -210,7 +210,7 @@ public class RecurlyClient {
      * @return Accounts on success, null otherwise
      */
     public Accounts getAccounts() {
-        return doGET(Accounts.ACCOUNTS_RESOURCE, Accounts.class);
+        return doGET(Accounts.ACCOUNTS_RESOURCE, Accounts.class, new QueryParams());
     }
 
     /**
@@ -244,7 +244,7 @@ public class RecurlyClient {
      * @return Coupons on success, null otherwise
      */
     public Coupons getCoupons() {
-        return doGET(Coupons.COUPONS_RESOURCE, Coupons.class);
+        return doGET(Coupons.COUPONS_RESOURCE, Coupons.class, new QueryParams());
     }
 
     /**
@@ -338,7 +338,7 @@ public class RecurlyClient {
      * <p>
      *
      * @param accountCode recurly account id
-     * @param type {@link Adjustments.AdjustmentType}
+     * @param type {@link com.ning.billing.recurly.model.Adjustments.AdjustmentType}
      * @return the adjustments on the account
      */
     public Adjustments getAccountAdjustments(final String accountCode, final Adjustments.AdjustmentType type) {
@@ -350,8 +350,8 @@ public class RecurlyClient {
      * <p>
      *
      * @param accountCode recurly account id
-     * @param type {@link Adjustments.AdjustmentType}
-     * @param state {@link Adjustments.AdjustmentState}
+     * @param type {@link com.ning.billing.recurly.model.Adjustments.AdjustmentType}
+     * @param state {@link com.ning.billing.recurly.model.Adjustments.AdjustmentState}
      * @return the adjustments on the account
      */
     public Adjustments getAccountAdjustments(final String accountCode, final Adjustments.AdjustmentType type, final Adjustments.AdjustmentState state) {
@@ -363,8 +363,8 @@ public class RecurlyClient {
      * <p>
      *
      * @param accountCode recurly account id
-     * @param type {@link Adjustments.AdjustmentType}
-     * @param state {@link Adjustments.AdjustmentState}
+     * @param type {@link com.ning.billing.recurly.model.Adjustments.AdjustmentType}
+     * @param state {@link com.ning.billing.recurly.model.Adjustments.AdjustmentState}
      * @param params {@link QueryParams}
      * @return the adjustments on the account
      */
@@ -585,7 +585,8 @@ public class RecurlyClient {
         return doGET(Account.ACCOUNT_RESOURCE
                      + "/" + accountCode
                      + Subscriptions.SUBSCRIPTIONS_RESOURCE,
-                     Subscriptions.class);
+                     Subscriptions.class,
+                     new QueryParams());
     }
 
     /**
@@ -597,7 +598,7 @@ public class RecurlyClient {
      */
     public Subscriptions getSubscriptions() {
         return doGET(Subscriptions.SUBSCRIPTIONS_RESOURCE,
-                Subscriptions.class);
+                Subscriptions.class, new QueryParams());
     }
 
     /**
@@ -769,6 +770,22 @@ public class RecurlyClient {
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    // Account Notes
+
+    /**
+     * List an account's notes
+     * <p>
+     * Returns the account's notes
+     *
+     * @param accountCode recurly account id
+     * @return the notes associated with this account on success, null otherwise
+     */
+    public AccountNotes getAccountNotes(final String accountCode) {
+        return doGET(Accounts.ACCOUNTS_RESOURCE + "/" + accountCode + AccountNotes.ACCOUNT_NOTES_RESOURCE,
+                     AccountNotes.class, new QueryParams());
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     // User transactions
 
     /**
@@ -781,7 +798,7 @@ public class RecurlyClient {
      */
     public Transactions getAccountTransactions(final String accountCode) {
         return doGET(Accounts.ACCOUNTS_RESOURCE + "/" + accountCode + Transactions.TRANSACTIONS_RESOURCE,
-                     Transactions.class);
+                     Transactions.class, new QueryParams());
     }
 
     /**
@@ -811,7 +828,7 @@ public class RecurlyClient {
      * @return the transaction history of the site on success, null otherwise
      */
     public Transactions getTransactions() {
-        return doGET(Transactions.TRANSACTIONS_RESOURCE, Transactions.class);
+        return doGET(Transactions.TRANSACTIONS_RESOURCE, Transactions.class, new QueryParams());
     }
 
     /**
@@ -912,6 +929,18 @@ public class RecurlyClient {
     }
 
     /**
+     * Update an invoice
+     * <p>
+     * Updates an existing invoice.
+     *
+     * @param invoiceId String Recurly Invoice ID
+     * @return the updated invoice object on success, null otherwise
+     */
+    public Invoice updateInvoice(final String invoiceId, final Invoice invoice) {
+        return doPUT(Invoices.INVOICES_RESOURCE + "/" + invoiceId, invoice, Invoice.class);
+    }
+
+    /**
      * Fetch invoice pdf
      * <p>
      * Returns the invoice pdf as an inputStream
@@ -946,7 +975,7 @@ public class RecurlyClient {
      * @return the invoices associated with this site on success, null otherwise
      */
     public Invoices getInvoices() {
-        return doGET(Invoices.INVOICES_RESOURCE, Invoices.class);
+        return doGET(Invoices.INVOICES_RESOURCE, Invoices.class, new QueryParams());
     }
 
     /**
@@ -981,7 +1010,8 @@ public class RecurlyClient {
      * @return all the transactions on the invoice
      */
     public Transactions getInvoiceTransactions(final String invoiceId) {
-        return doGET(Invoices.INVOICES_RESOURCE + "/" + invoiceId + Transactions.TRANSACTIONS_RESOURCE, Transactions.class);
+        return doGET(Invoices.INVOICES_RESOURCE + "/" + invoiceId + Transactions.TRANSACTIONS_RESOURCE,
+                     Transactions.class, new QueryParams());
     }
     
     /**
@@ -994,7 +1024,20 @@ public class RecurlyClient {
      */
     public Invoices getAccountInvoices(final String accountCode) {
         return doGET(Accounts.ACCOUNTS_RESOURCE + "/" + accountCode + Invoices.INVOICES_RESOURCE,
-                     Invoices.class);
+                     Invoices.class, new QueryParams());
+    }
+
+    /**
+     * Lookup an invoice's original invoices (e.g. a refund invoice has original_invoices)
+     * <p>
+     * Returns the invoice's original invoices
+     *
+     * @param invoiceId the invoice id
+     * @return the original invoices associated with this invoice on success. Throws RecurlyAPIError if not found
+     */
+    public Invoices getOriginalInvoices(final String invoiceId) {
+        return doGET(Invoices.INVOICES_RESOURCE + "/" + invoiceId + "/original_invoices",
+                    Invoices.class, new QueryParams());
     }
 
     /**
@@ -1002,17 +1045,20 @@ public class RecurlyClient {
      * <p/>
      * Returns the refunded invoice
      *
+     * @deprecated Please use refundInvoice(String, InvoiceRefund)
+     *
      * @param invoiceId The id of the invoice to refund
      * @param amountInCents The open amount to refund
      * @param method If credit line items exist on the invoice, this parameter specifies which refund method to use first
      * @return the refunded invoice
      */
+    @Deprecated
     public Invoice refundInvoice(final String invoiceId, final Integer amountInCents, final RefundMethod method) {
         final InvoiceRefund invoiceRefund = new InvoiceRefund();
         invoiceRefund.setRefundMethod(method);
         invoiceRefund.setAmountInCents(amountInCents);
 
-        return doPOST(Invoices.INVOICES_RESOURCE + "/" + invoiceId + "/refund", invoiceRefund, Invoice.class);
+        return refundInvoice(invoiceId, invoiceRefund);
     }
 
     /**
@@ -1020,17 +1066,33 @@ public class RecurlyClient {
      * <p/>
      * Returns the refunded invoice
      *
+     * @deprecated Please use refundInvoice(String, InvoiceRefund)
+     *
      * @param invoiceId The id of the invoice to refund
      * @param lineItems The list of adjustment refund objects
      * @param method If credit line items exist on the invoice, this parameter specifies which refund method to use first
      * @return the refunded invoice
      */
+    @Deprecated
     public Invoice refundInvoice(final String invoiceId, List<AdjustmentRefund> lineItems, final RefundMethod method) {
         final InvoiceRefund invoiceRefund = new InvoiceRefund();
         invoiceRefund.setRefundMethod(method);
         invoiceRefund.setLineItems(lineItems);
 
-        return doPOST(Invoices.INVOICES_RESOURCE + "/" + invoiceId + "/refund", invoiceRefund, Invoice.class);
+        return refundInvoice(invoiceId, invoiceRefund);
+    }
+
+    /**
+     * Refund an invoice given some options
+     * <p/>
+     * Returns the refunded invoice
+     *
+     * @param invoiceId The id of the invoice to refund
+     * @param refundOptions The options for the refund
+     * @return the refunded invoice
+     */
+    public Invoice refundInvoice(final String invoiceId, final InvoiceRefund refundOptions) {
+        return doPOST(Invoices.INVOICES_RESOURCE + "/" + invoiceId + "/refund", refundOptions, Invoice.class);
     }
 
     /**
@@ -1043,7 +1105,7 @@ public class RecurlyClient {
      */
     public ShippingAddresses getAccountShippingAddresses(final String accountCode) {
         return doGET(Accounts.ACCOUNTS_RESOURCE + "/" + accountCode + ShippingAddresses.SHIPPING_ADDRESSES_RESOURCE,
-                ShippingAddresses.class);
+                ShippingAddresses.class, new QueryParams());
     }
 
     /**
@@ -1250,7 +1312,7 @@ public class RecurlyClient {
      * @return the plan object as identified by the passed in ID
      */
     public Plans getPlans() {
-        return doGET(Plans.PLANS_RESOURCE, Plans.class);
+        return doGET(Plans.PLANS_RESOURCE, Plans.class, new QueryParams());
     }
 
     /**
@@ -1334,7 +1396,8 @@ public class RecurlyClient {
                 "/" +
                 planCode +
                 AddOn.ADDONS_RESOURCE,
-                AddOns.class);
+                AddOns.class,
+                new QueryParams());
     }
 
     /**
@@ -1457,7 +1520,7 @@ public class RecurlyClient {
      */
     public Redemptions getCouponRedemptionsByAccount(final String accountCode) {
         return doGET(Accounts.ACCOUNTS_RESOURCE + "/" + accountCode + Redemption.REDEMPTIONS_RESOURCE,
-                Redemptions.class);
+                Redemptions.class, new QueryParams());
     }
 
     /**
@@ -1627,7 +1690,7 @@ public class RecurlyClient {
      * @return gitfcards object on success, null otherwise
      */
     public GiftCards getGiftCards() {
-        return doGET(GiftCards.GIFT_CARDS_RESOURCE, GiftCards.class);
+        return doGET(GiftCards.GIFT_CARDS_RESOURCE, GiftCards.class, new QueryParams());
     }
 
     /**
@@ -1696,7 +1759,7 @@ public class RecurlyClient {
      * @return the MeasuredUnits object as identified by the passed in ID
      */
     public MeasuredUnits getMeasuredUnits() {
-        return doGET(MeasuredUnits.MEASURED_UNITS_RESOURCE, MeasuredUnits.class);
+        return doGET(MeasuredUnits.MEASURED_UNITS_RESOURCE, MeasuredUnits.class, new QueryParams());
     }
 
     /**
@@ -1816,7 +1879,6 @@ public class RecurlyClient {
      * https://dev.recurly.com/docs/clear-account-acquisition
      *
      * @param accountCode The account's account code
-     * @return The cleared AccountAcquisition object
      */
     public void deleteAccountAcquisition(final String accountCode) {
         doDELETE(Account.ACCOUNT_RESOURCE + "/" + accountCode + AccountAcquisition.ACCOUNT_ACQUISITION_RESOURCE);
@@ -1831,7 +1893,7 @@ public class RecurlyClient {
      * @return CreditPayments on success, null otherwise
      */
     public CreditPayments getCreditPayments() {
-        return doGET(CreditPayments.CREDIT_PAYMENTS_RESOURCE, CreditPayments.class);
+        return doGET(CreditPayments.CREDIT_PAYMENTS_RESOURCE, CreditPayments.class, new QueryParams());
     }
 
     /**
@@ -1871,7 +1933,7 @@ public class RecurlyClient {
     }
 
     public <T> T doGET(final String resource, final Class<T> clazz) {
-        return doGETWithFullURL(clazz, constructGetUrl(resource, new QueryParams()));
+        return doGETWithFullURL(clazz, baseUrl + resource);
     }
 
     public <T> T doGET(final String resource, final Class<T> clazz, QueryParams params) {
@@ -2009,7 +2071,10 @@ public class RecurlyClient {
             return null;
         } catch (ExecutionException e) {
             // Extract the errors exception, if any
-            if (e.getCause() != null &&
+            if (e.getCause() instanceof ConnectException) {
+                // See https://github.com/killbilling/recurly-java-library/issues/185
+                throw new ConnectionErrorException(e.getCause());
+            } else if (e.getCause() != null &&
                 e.getCause().getCause() != null &&
                 e.getCause().getCause() instanceof TransactionErrorException) {
                 throw (TransactionErrorException) e.getCause().getCause();
